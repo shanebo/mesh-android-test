@@ -1,41 +1,96 @@
 package com.shanebo.meshtest;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
-import com.shanebo.meshtest.MeshWebview;
-
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 public class MeshActivity extends Activity {
+    WebSettings wSettings;
 
-    protected MeshWebview appView;
-
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_mesh);
+        WebView webView = new WebView(this);
+        webView.setClickable(true);
+        wSettings = webView.getSettings();
+        wSettings.setJavaScriptEnabled(true);
 
-        this.appView.loadUrl("file://assets/web/app.html");
+        /**
+         * Support classes for webview. Loading a ChromeClient for better performance
+         */
+        WebClientClass webViewClient = new WebClientClass();
+        webView.setWebViewClient(webViewClient);
+        WebChromeClient webChromeClient = new WebChromeClient();
+        webView.setWebChromeClient(webChromeClient);
+
+        /**
+         * Now Added Java Interface Class
+         */
+        webView.addJavascriptInterface(new meshInterface(this), "Android");
+
+        /**
+         * Load Our Custom JS Inside WebView
+         */
+        webView.loadUrl("file:///android_asset/web/app.html");
+        setContentView(webView);
+
     }
 
+    public class WebClientClass extends WebViewClient {
+        ProgressDialog pd = null;
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.mesh, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
+        @Override
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+            pd = new ProgressDialog(MeshActivity.this);
+            pd.setTitle("Please wait");
+            pd.setMessage("Page is loading..");
+            pd.show();
         }
-        return super.onOptionsItemSelected(item);
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            pd.dismiss();
+        }
+    }
+
+    public class WebChromeClass extends WebChromeClient {
+    }
+
+    public class meshInterface {
+
+
+
+        private Context con;
+
+        public meshInterface(Context con) {
+            this.con = con;
+        }
+
+        public void showToast(String mssg) {
+            AlertDialog alert = new AlertDialog.Builder(con)
+                    .create();
+            alert.setTitle("My Js Alert");
+            alert.setMessage(mssg);
+            alert.setButton("OK", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+
+        }
     }
 }
